@@ -80,7 +80,7 @@ module FakeFTP
   class Server < DynFTPServer
     def initialize(conf = {})
       @backdoor_thread = Thread.new do
-        Rack::Handler::WEBrick.run(
+        Rack::Handler::Mongrel.run(
           Rack::ShowExceptions.new(Rack::Lint.new(BackDoor.new)),
           :Port => 9803
         )
