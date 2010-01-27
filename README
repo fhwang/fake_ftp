@@ -1,0 +1,5 @@
+A pure-Ruby FTP server with an external REST control interface for use in full-stack integration tests.
+
+Builds on http://rubyforge.org/projects/dyn-ftp-serv/, by Vitaly Rubtsov.
+
+

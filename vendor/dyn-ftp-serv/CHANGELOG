@@ -1,0 +1,10 @@
+2007-11-11 ftp-dyn-serv 0.1.2
+  Added ip masquerading feature.
+  Added settings for minimum and maximum passive port numbers.
+  Fixed issue with authentication.
+
+2007-11-09 ftp-dyn-serv 0.1.1
+  Updated rdoc comments.
+
+2007-11-09 ftp-dyn-serv 0.1.0
+  Initial release.
