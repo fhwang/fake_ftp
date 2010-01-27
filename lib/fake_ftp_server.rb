@@ -88,7 +88,7 @@ module FakeFTP
       log  = Logger.new(STDOUT)
       log.datetime_format = "%H:%M:%S"
       log.progname = "ftpserv.rb"
-      root = FileSystemProvider.new('/')
+      root = FileSystemProvider.new conf[:root_dir]
       auth =
         lambda do |user,pass|
           return false unless user.casecmp('anonymous') == 0
