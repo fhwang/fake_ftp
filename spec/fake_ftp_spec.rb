@@ -6,7 +6,12 @@ describe "FakeFTP when first booted" do
     @fake_ftp_server = FakeFTP::Server.new(
       :port => 21212, :root_dir => './spec/ftp_root/'
     )
-    sleep 0.1 until @fake_ftp_server.running?
+    sleep 0.1 until @fake_ftp_server.all_services_running?
+  end
+  
+  after :all do
+    @fake_ftp_server.shutdown
+    sleep 0.1 while @fake_ftp_server.any_services_running?
   end
   
   it 'should return an empty list of /behaviors' do
@@ -22,3 +27,29 @@ describe "FakeFTP when first booted" do
     files.any? { |file| file =~ / README$/ }.should be_true
   end
 end
+
+describe "FakeFTP shutdown" do
+  it 'should succeed' do
+    fake1 = FakeFTP::Server.new(
+      :port => 21212, :root_dir => './spec/ftp_root/'
+    )
+    sleep 0.1 until fake1.all_services_running?
+    ftp = Net::FTP.new
+    ftp.connect('127.0.0.1', 21212)
+    ftp.login('anonymous', 'asdf')
+    files = ftp.list('*')
+    files.any? { |file| file =~ / README$/ }.should be_true
+    fake1.shutdown
+    sleep 0.1 while fake1.any_services_running?
+    fake2 = FakeFTP::Server.new(
+      :port => 21212, :root_dir => './spec/ftp_root/'
+    )
+    ftp = Net::FTP.new
+    ftp.connect('127.0.0.1', 21212)
+    ftp.login('anonymous', 'asdf')
+    files = ftp.list('*')
+    files.any? { |file| file =~ / README$/ }.should be_true
+    fake2.shutdown
+  end
+end
+

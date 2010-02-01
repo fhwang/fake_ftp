@@ -5,24 +5,29 @@ require 'rubygems'
 require 'active_support'
 require 'httparty'
 require 'logger'
-require 'rack'  
+require 'rack'
+require 'sinatra'
 
 Thread.abort_on_exception = true
 
 module FakeFTP  
-  class BackDoor
-    def call(env)
-      res = Rack::Response.new
-      res.write [].to_json
-      res.finish
-    end
-  end
-  
   class BackDoorClient
     include HTTParty
     
     base_uri "http://127.0.0.1:9803"
     format   :json
+  end
+  
+  class BackDoorServer < Sinatra::Base
+    set :server, 'mongrel'
+    
+    get '/' do
+      ''
+    end
+
+    get '/behaviors' do
+      [].to_json
+    end
   end
 
   class FileSystemProvider
@@ -87,37 +92,47 @@ module FakeFTP
 
   class Server < DynFTPServer
     def initialize(conf = {})
-      @backdoor_thread = Thread.new do
+      @back_door_thread = Thread.new do
         Rack::Handler::Mongrel.run(
-          Rack::ShowExceptions.new(Rack::Lint.new(BackDoor.new)),
-          :Port => 9803
-        )
+          Rack::ShowExceptions.new(BackDoorServer.new), :Port => 9803
+        ) do |server|
+          @back_door_server = server
+        end
       end
-      log  = Logger.new(STDOUT)
-      log.datetime_format = "%H:%M:%S"
-      log.progname = "ftpserv.rb"
       root = FileSystemProvider.new conf[:root_dir]
       auth =
         lambda do |user,pass|
           return false unless user.casecmp('anonymous') == 0
           return true
         end
-      conf = {
-        :port => 21, :root => root, :authentication => auth,
-        :logger => log
-      }.merge(conf)
+      conf = {:port => 21, :root => root, :authentication => auth}.merge(conf)
       super(conf)
       @ftp_thread = Thread.new do
         mainloop
       end
     end
     
-    def running?
-      begin
+    def all_services_running?
+      @ftp_thread.alive? && begin
         FakeFTP::BackDoorClient.get '/'
       rescue Errno::ECONNREFUSED
         false
       end
+    end
+    
+    def any_services_running?
+      @ftp_thread.alive? || begin
+        FakeFTP::BackDoorClient.get '/'
+      rescue Errno::ECONNREFUSED
+        false
+      end
+    end
+    
+    def shutdown
+      @back_door_server.stop
+      @back_door_thread.kill
+      @ftp_thread.kill
+      @server.close
     end
   end
 end
