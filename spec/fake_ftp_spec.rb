@@ -30,7 +30,7 @@ describe "FakeFTP when first booted" do
   
   it 'should return an empty list of /behaviors' do
     behaviors = FakeFTP::BackDoorClient.get '/behaviors'
-    behaviors.should == []
+    behaviors.should == {}
   end
   
   it 'should see the README' do
@@ -63,7 +63,9 @@ describe "FakeFTP that's been programmed to hang" do
       :port => 21212, :root_dir => './spec/ftp_root/'
     )
     sleep 0.1 until @fake_ftp_server.all_services_running?
-    FakeFTP::BackDoorClient.post '/behaviors', :query => {:behavior => 'hang'}
+    FakeFTP::BackDoorClient.post(
+      '/behaviors', :query => {:behavior => {'*' => 'hang'}}
+    )
   end
   
   after :all do
@@ -72,7 +74,7 @@ describe "FakeFTP that's been programmed to hang" do
   end
   
   it "should say it's ready to hang" do
-    FakeFTP::BackDoorClient.get('/behaviors').should == %w(hang)
+    FakeFTP::BackDoorClient.get('/behaviors').should == {'*' => 'hang'}
   end
   
   it 'should actually hang' do
@@ -90,8 +92,10 @@ describe "FakeFTP that's been programmed to hang and is then reset" do
       :port => 21212, :root_dir => './spec/ftp_root/'
     )
     sleep 0.1 until @fake_ftp_server.all_services_running?
-    FakeFTP::BackDoorClient.post '/behaviors', :query => {:behavior => 'hang'}
-    FakeFTP::BackDoorClient.post '/behaviors', :query => {:behavior => ''}
+    FakeFTP::BackDoorClient.post(
+      '/behaviors', :query => {:behavior => {'*' => 'hang'}}
+    )
+    FakeFTP::BackDoorClient.post '/behaviors', :query => {:behaviors => {}}
   end
   
   after :all do
@@ -100,7 +104,7 @@ describe "FakeFTP that's been programmed to hang and is then reset" do
   end
   
   it "should say it's ready to act normally" do
-    FakeFTP::BackDoorClient.get('/behaviors').should == []
+    FakeFTP::BackDoorClient.get('/behaviors').should == {}
   end
   
   it 'should see the README' do
