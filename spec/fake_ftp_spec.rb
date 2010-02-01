@@ -1,6 +1,20 @@
 require File.expand_path(File.dirname(__FILE__) + '/../lib/fake_ftp_server')
 require 'net/ftp'
 
+module FakeFTPSpecHelper
+  def assert_readme_visible
+    ftp = Net::FTP.new
+    ftp.connect('127.0.0.1', 21212)
+    ftp.login('anonymous', 'asdf')
+    files = ftp.list('*')
+    files.any? { |file| file =~ / README$/ }.should be_true
+  end
+end
+
+Spec::Runner.configure do |config|
+  include FakeFTPSpecHelper
+end
+
 describe "FakeFTP when first booted" do
   before :all do
     @fake_ftp_server = FakeFTP::Server.new(
@@ -20,11 +34,7 @@ describe "FakeFTP when first booted" do
   end
   
   it 'should see the README' do
-    ftp = Net::FTP.new
-    ftp.connect('127.0.0.1', 21212)
-    ftp.login('anonymous', 'asdf')
-    files = ftp.list('*')
-    files.any? { |file| file =~ / README$/ }.should be_true
+    assert_readme_visible
   end
 end
 
@@ -34,21 +44,13 @@ describe "FakeFTP shutdown" do
       :port => 21212, :root_dir => './spec/ftp_root/'
     )
     sleep 0.1 until fake1.all_services_running?
-    ftp = Net::FTP.new
-    ftp.connect('127.0.0.1', 21212)
-    ftp.login('anonymous', 'asdf')
-    files = ftp.list('*')
-    files.any? { |file| file =~ / README$/ }.should be_true
+    assert_readme_visible
     fake1.shutdown
     sleep 0.1 while fake1.any_services_running?
     fake2 = FakeFTP::Server.new(
       :port => 21212, :root_dir => './spec/ftp_root/'
     )
-    ftp = Net::FTP.new
-    ftp.connect('127.0.0.1', 21212)
-    ftp.login('anonymous', 'asdf')
-    files = ftp.list('*')
-    files.any? { |file| file =~ / README$/ }.should be_true
+    assert_readme_visible
     fake2.shutdown
   end
 end
