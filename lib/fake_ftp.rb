@@ -152,7 +152,12 @@ module FakeFTP
         if BackDoorServer.behaviors['*'] == 'hang'
           while true; end
         else
-          super(params)
+          m =~ /^cmd_(.*)/
+          if BackDoorServer.behaviors[$1] == 'hang'
+            while true; end
+          else
+            super(params)
+          end
         end
       end
     end

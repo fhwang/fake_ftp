@@ -111,3 +111,38 @@ describe "FakeFTP that's been programmed to hang and is then reset" do
     assert_readme_visible
   end
 end
+
+describe "FakeFTP that's been programmed to only hang on list" do
+  before :all do
+    @fake_ftp_server = FakeFTP::Server.new(
+      :port => 21212, :root_dir => './spec/ftp_root/'
+    )
+    sleep 0.1 until @fake_ftp_server.all_services_running?
+    FakeFTP::BackDoorClient.post(
+      '/behaviors', :query => {:behavior => {'list' => 'hang'}}
+    )
+  end
+  
+  after :all do
+    @fake_ftp_server.shutdown
+    sleep 0.1 while @fake_ftp_server.any_services_running?
+  end
+  
+  it "should say it's ready to hang" do
+    FakeFTP::BackDoorClient.get('/behaviors').should == {'list' => 'hang'}
+  end
+  
+  it 'should connect and login fine' do
+    ftp = Net::FTP.new
+    ftp.connect('127.0.0.1', 21212)
+    ftp.login('anonymous', 'asdf')
+  end
+  
+  it 'should actually hang when you list' do
+    lambda {
+      Timeout.timeout(5) do
+        assert_readme_visible
+      end
+    }.should raise_error(Timeout::Error)
+  end
+end
