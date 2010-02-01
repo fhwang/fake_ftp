@@ -3,18 +3,26 @@ require File.expand_path(
 )
 require 'rubygems'
 require 'active_support'
+require 'httparty'
 require 'logger'
 require 'rack'  
 
 Thread.abort_on_exception = true
 
-module FakeFTP
+module FakeFTP  
   class BackDoor
     def call(env)
       res = Rack::Response.new
       res.write [].to_json
       res.finish
     end
+  end
+  
+  class BackDoorClient
+    include HTTParty
+    
+    base_uri "http://127.0.0.1:9803"
+    format   :json
   end
 
   class FileSystemProvider
@@ -98,7 +106,18 @@ module FakeFTP
         :port => 21, :root => root, :authentication => auth,
         :logger => log
       }.merge(conf)
-      super conf
+      super(conf)
+      @ftp_thread = Thread.new do
+        mainloop
+      end
+    end
+    
+    def running?
+      begin
+        FakeFTP::BackDoorClient.get '/'
+      rescue Errno::ECONNREFUSED
+        false
+      end
     end
   end
 end
