@@ -83,3 +83,27 @@ describe "FakeFTP that's been programmed to hang" do
     }.should raise_error(Timeout::Error)
   end
 end
+
+describe "FakeFTP that's been programmed to hang and is then reset" do
+  before :all do
+    @fake_ftp_server = FakeFTP::Server.new(
+      :port => 21212, :root_dir => './spec/ftp_root/'
+    )
+    sleep 0.1 until @fake_ftp_server.all_services_running?
+    FakeFTP::BackDoorClient.post '/behaviors', :query => {:behavior => 'hang'}
+    FakeFTP::BackDoorClient.post '/behaviors', :query => {:behavior => ''}
+  end
+  
+  after :all do
+    @fake_ftp_server.shutdown
+    sleep 0.1 while @fake_ftp_server.any_services_running?
+  end
+  
+  it "should say it's ready to act normally" do
+    FakeFTP::BackDoorClient.get('/behaviors').should == []
+  end
+  
+  it 'should see the README' do
+    assert_readme_visible
+  end
+end

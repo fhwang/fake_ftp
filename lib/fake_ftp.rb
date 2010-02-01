@@ -29,11 +29,11 @@ module FakeFTP
     end
 
     get '/behaviors' do
-      behaviors.to_json
+      self.behaviors.to_json
     end
     
     post '/behaviors' do
-      behaviors << params[:behavior]
+      self.behaviors = [params[:behavior]].reject { |p| p.blank? }
     end
   end
 
