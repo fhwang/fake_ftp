@@ -1,4 +1,4 @@
-require File.expand_path(File.dirname(__FILE__) + '/../lib/fake_ftp_server')
+require File.expand_path(File.dirname(__FILE__) + '/../lib/fake_ftp')
 require 'net/ftp'
 
 module FakeFTPSpecHelper
