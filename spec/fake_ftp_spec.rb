@@ -50,8 +50,36 @@ describe "FakeFTP shutdown" do
     fake2 = FakeFTP::Server.new(
       :port => 21212, :root_dir => './spec/ftp_root/'
     )
+    sleep 0.1 until fake2.all_services_running?
     assert_readme_visible
     fake2.shutdown
+    sleep 0.1 while fake2.any_services_running?
   end
 end
 
+describe "FakeFTP that's been programmed to hang" do
+  before :all do
+    @fake_ftp_server = FakeFTP::Server.new(
+      :port => 21212, :root_dir => './spec/ftp_root/'
+    )
+    sleep 0.1 until @fake_ftp_server.all_services_running?
+    FakeFTP::BackDoorClient.post '/behaviors', :query => {:behavior => 'hang'}
+  end
+  
+  after :all do
+    @fake_ftp_server.shutdown
+    sleep 0.1 while @fake_ftp_server.any_services_running?
+  end
+  
+  it "should say it's ready to hang" do
+    FakeFTP::BackDoorClient.get('/behaviors').should == %w(hang)
+  end
+  
+  it 'should actually hang' do
+    lambda {
+      Timeout.timeout(5) do
+        assert_readme_visible
+      end
+    }.should raise_error(Timeout::Error)
+  end
+end

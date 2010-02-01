@@ -19,6 +19,9 @@ module FakeFTP
   end
   
   class BackDoorServer < Sinatra::Base
+    cattr_accessor :behaviors
+    self.behaviors = []
+  
     set :server, 'mongrel'
     
     get '/' do
@@ -26,7 +29,11 @@ module FakeFTP
     end
 
     get '/behaviors' do
-      [].to_json
+      behaviors.to_json
+    end
+    
+    post '/behaviors' do
+      behaviors << params[:behavior]
     end
   end
 
@@ -133,6 +140,16 @@ module FakeFTP
       @back_door_thread.kill
       @ftp_thread.kill
       @server.close
+    end
+    
+    DynFTPServer.private_instance_methods.select { |m| m=~/^cmd_/ }.each do |m|
+      define_method(m) do |params|
+        if BackDoorServer.behaviors.include?('hang')
+          while true; end
+        else
+          super(params)
+        end
+      end
     end
   end
 end
