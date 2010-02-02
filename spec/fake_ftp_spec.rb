@@ -167,3 +167,34 @@ describe "FakeFTP with two connections" do
   end
 end
 
+describe "FakeFTP that restricts to one connection" do
+  before :all do
+    @fake_ftp_server = FakeFTP::Server.new(
+      :port => 21212, :root_dir => './spec/ftp_root/'
+    )
+    sleep 0.1 until @fake_ftp_server.all_services_running?
+    FakeFTP::BackDoorClient.post(
+      '/behaviors', :query => {:behavior => {'*' => {'maxconns' => 1}}}
+    )
+  end
+  
+  after :all do
+    @fake_ftp_server.shutdown
+    sleep 0.1 while @fake_ftp_server.any_services_running?
+  end
+
+  it 'should raise an error on the 2nd connection' do
+    ftp1 = Net::FTP.new
+    ftp1.connect('127.0.0.1', 21212)
+    ftp2 = Net::FTP.new
+    lambda {
+      ftp2.connect('127.0.0.1', 21212)
+    }.should raise_error(
+      Net::FTPTempError,
+      /421 1 users \(the maximum\) are already logged in, sorry/
+    )
+    ftp1.close
+    ftp2.connect('127.0.0.1', 21212)
+  end
+end
+

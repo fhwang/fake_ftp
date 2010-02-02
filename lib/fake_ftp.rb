@@ -26,6 +26,11 @@ module FakeFTP
     end
     
     reset_behaviors
+    
+    def self.max_connections
+      behaviors['*'] && behaviors['*']['maxconns'] &&
+        behaviors['*']['maxconns'].to_i
+    end
   
     set :server, 'mongrel'
     
@@ -109,6 +114,7 @@ module FakeFTP
 
   class Server < DynFTPServer
     def initialize(conf = {})
+      @live_connections = 0
       @back_door_thread = Thread.new do
         Rack::Handler::Mongrel.run(
           Rack::ShowExceptions.new(BackDoorServer.new), :Port => 9803
@@ -142,6 +148,23 @@ module FakeFTP
         FakeFTP::BackDoorClient.get '/'
       rescue Errno::ECONNREFUSED
         false
+      end
+    end
+    
+    def client_loop
+      if BackDoorServer.max_connections.nil? or
+         BackDoorServer.max_connections > @live_connections
+        begin
+          @live_connections += 1
+          super
+        ensure
+          @live_connections -= 1
+        end
+      else
+        status(
+          421,
+          "#{BackDoorServer.max_connections} users (the maximum) are already logged in, sorry"
+        )
       end
     end
     
