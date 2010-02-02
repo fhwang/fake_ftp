@@ -20,7 +20,12 @@ module FakeFTP
   
   class BackDoorServer < Sinatra::Base
     cattr_accessor :behaviors
-    self.behaviors = {}
+    
+    def self.reset_behaviors
+      self.behaviors = {}
+    end
+    
+    reset_behaviors
   
     set :server, 'mongrel'
     
@@ -145,6 +150,7 @@ module FakeFTP
       @back_door_thread.kill
       @ftp_thread.kill
       @server.close
+      BackDoorServer.reset_behaviors
     end
     
     DynFTPServer.private_instance_methods.select { |m| m=~/^cmd_/ }.each do |m|

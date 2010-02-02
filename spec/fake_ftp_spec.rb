@@ -146,3 +146,24 @@ describe "FakeFTP that's been programmed to only hang on list" do
     }.should raise_error(Timeout::Error)
   end
 end
+
+describe "FakeFTP with two connections" do
+  before :all do
+    @fake_ftp_server = FakeFTP::Server.new(
+      :port => 21212, :root_dir => './spec/ftp_root/'
+    )
+    sleep 0.1 until @fake_ftp_server.all_services_running?
+  end
+  
+  after :all do
+    @fake_ftp_server.shutdown
+    sleep 0.1 while @fake_ftp_server.any_services_running?
+  end
+
+  it 'should handle both just fine' do
+    thread1 = Thread.new { assert_readme_visible }
+    thread2 = Thread.new { assert_readme_visible }
+    [thread1, thread2].each do |t| t.join; end
+  end
+end
+

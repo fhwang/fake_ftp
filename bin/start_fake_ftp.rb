@@ -20,5 +20,6 @@ OptionParser.new do |opts|
   end
 end.parse!
 
+puts "Starting FakeFTP::Server with root directory '#{options[:root_dir]}' and port #{options[:port]}"
 FakeFTP::Server.new options
 while true; end
