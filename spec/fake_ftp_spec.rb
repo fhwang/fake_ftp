@@ -198,3 +198,25 @@ describe "FakeFTP that restricts to one connection" do
   end
 end
 
+describe 'FakeFTP deletion' do
+  before :all do
+    @fake_ftp_server = FakeFTP::Server.new(
+      :port => 21212, :root_dir => './spec/ftp_root/'
+    )
+    ftp = Net::FTP.new
+    ftp.connect('127.0.0.1', 21212)
+    ftp.login('anonymous', 'asdf')
+    ftp.puttextfile "./LICENSE"
+    File.exist?('./spec/ftp_root/LICENSE').should be_true
+    ftp.delete 'LICENSE'
+  end
+  
+  after :all do
+    file = './spec/ftp_root/LICENSE'
+    FileUtils.rm(file) if File.exist?(file)
+  end
+
+  it 'should work' do
+    File.exist?('./spec/ftp_root/LICENSE').should be_false
+  end
+end

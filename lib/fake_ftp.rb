@@ -97,7 +97,8 @@ module FakeFTP
     end
     
     def ftp_delete()
-      return false
+      FileUtils.rm @path
+      true
     end
     
     def initialize(path)
